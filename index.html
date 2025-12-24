@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAPI Sharer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .button-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+
+        .result h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .link-container {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .link-container a {
+            color: #007bff;
+            text-decoration: none;
+            font-family: monospace;
+        }
+
+        .link-container a:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔗 OpenAPI Sharer</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Paste your OpenAPI JSON specification below, and we'll generate a shareable link with the specification
+            embedded as base64.
+        </p>
+
+        <textarea id="jsonInput" placeholder="Paste your OpenAPI JSON specification here..."></textarea>
+
+        <div class="button-container">
+            <button onclick="generateLink()">🚀 Generate Shareable Link</button>
+            <button onclick="clearInput()">🗑️ Clear</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Check if there's an 'api' parameter in the URL and redirect to UI
+        window.onload = function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const apiParam = urlParams.get('api');
+
+            if (apiParam) {
+                window.location.href = `/ui/?api=${apiParam}`;
+            }
+        };
+
+        function clearInput() {
+            document.getElementById('jsonInput').value = '';
+            document.getElementById('result').innerHTML = '';
+        }
+
+        function generateLink() {
+            const jsonInput = document.getElementById('jsonInput').value.trim();
+            const resultDiv = document.getElementById('result');
+
+            // Clear previous results
+            resultDiv.innerHTML = '';
+
+            if (!jsonInput) {
+                showError('Please enter some JSON content.');
+                return;
+            }
+
+            try {
+                // Parse JSON to validate it
+                const parsed = JSON.parse(jsonInput);
+
+                // Compact the JSON (remove unnecessary whitespace)
+                const compacted = JSON.stringify(parsed);
+
+                // Encode to base64
+                const base64 = btoa(unescape(encodeURIComponent(compacted)));
+
+                // Generate the link
+                const baseUrl = window.location.origin;
+                const shareableLink = `${baseUrl}/?api=${base64}`;
+
+                // Show the result
+                showResult(shareableLink, base64);
+
+            } catch (error) {
+                if (error instanceof SyntaxError) {
+                    showError('Invalid JSON format. Please check your syntax.');
+                } else {
+                    showError('Error processing JSON: ' + error.message);
+                }
+            }
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        function showResult(shareableLink, base64) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h3>✅ Shareable Link Generated!</h3>
+                    <div class="button-container">
+                        <button onclick="copyToClipboard('${shareableLink}')">📋 Copy Link</button>
+                        <button onclick="window.open('${shareableLink}', '_blank')">🔗 Open Link</button>
+                    </div>
+                    <p>Your OpenAPI specification has been compacted and encoded. Share this link:</p>
+                    <div class="link-container">
+                        <a href="${shareableLink}" target="_blank">${shareableLink}</a>
+                    </div>
+                    
+                    <div class="success">
+                        <small>💡 Tip: This link will automatically redirect to the Swagger UI interface when opened.</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function () {
+                // Show temporary success message
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(function () {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <link rel="shortcut icon" href="https://fastapi.tiangolo.com/img/favicon.png">
+    <title>OpenAPI - Swagger UI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-family: Arial, sans-serif;
+            color: #666;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin: 10px 20px;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+        }
+
+        .back-link:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="swagger-ui">
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <!-- `SwaggerUIBundle` is now available on the page -->
+    <script>
+        // Function to initialize Swagger UI with the OpenAPI specification
+        function initializeSwaggerUI(openApiSpec) {
+            try {
+                const ui = SwaggerUIBundle({
+                    spec: openApiSpec,
+                    dom_id: "#swagger-ui",
+                    layout: "BaseLayout",
+                    deepLinking: true,
+                    showExtensions: true,
+                    showCommonExtensions: true,
+                    oauth2RedirectUrl: window.location.origin + '/docs/oauth2-redirect',
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIBundle.SwaggerUIStandalonePreset
+                    ],
+                });
+            } catch (error) {
+                showError('Error loading OpenAPI specification: ' + error.message);
+            }
+        }
+
+        // Function to show error message
+        function showError(message) {
+            const swaggerDiv = document.getElementById('swagger-ui');
+            swaggerDiv.innerHTML = `
+            <div class="error-message">
+                <h3>❌ Error Loading API Specification</h3>
+                <p>${message}</p>
+                <a href="/" class="back-link">🏠 Go Back to Home</a>
+            </div>
+        `;
+        }
+
+        // Function to decode and parse the base64 encoded API specification
+        function decodeApiSpecification() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const apiParam = urlParams.get('api');
+
+                if (!apiParam) {
+                    showError('No API specification found in the URL. Please provide an "api" parameter.');
+                    return;
+                }
+
+                // Decode base64
+                const decoded = decodeURIComponent(escape(atob(apiParam)));
+
+                // Parse JSON
+                const openApiSpec = JSON.parse(decoded);
+
+                // Validate that it's a valid OpenAPI spec (basic check)
+                if (!openApiSpec.openapi && !openApiSpec.swagger) {
+                    throw new Error('The provided specification does not appear to be a valid OpenAPI document.');
+                }
+
+                // Initialize Swagger UI
+                initializeSwaggerUI(openApiSpec);
+
+            } catch (error) {
+                if (error instanceof SyntaxError) {
+                    showError('Invalid base64 encoded data or JSON format.');
+                } else if (error.message.includes('valid OpenAPI')) {
+                    showError(error.message);
+                } else {
+                    showError('Error processing API specification: ' + error.message);
+                }
+            }
+        }
+
+        // Initialize when page loads
+        window.onload = function () {
+            // Show loading message briefly
+            document.getElementById('swagger-ui').innerHTML = '<div class="loading">🔄 Loading API specification...</div>';
+
+            // Small delay to show loading state, then decode and initialize
+            setTimeout(decodeApiSpecification, 100);
+        };
+    </script>
+</body>
+
+</html>
